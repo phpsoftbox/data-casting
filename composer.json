@@ -14,17 +14,15 @@
     },
     "require": {
         "php": "^8.5",
-        "phpsoftbox/clock": "dev-master",
-        "phpsoftbox/filter": "dev-master",
+        "phpsoftbox/clock": "^1.0",
+        "phpsoftbox/filter": "^1.0",
         "ramsey/uuid": "^4.7"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.93",
-        "phpsoftbox/cli-app": "dev-master",
-        "phpsoftbox/cs-fixer": "^1.1.0",
-        "phpsoftbox/encryptor": "dev-master",
-        "phpsoftbox/storage": "dev-master",
-        "phpunit/phpunit": "^11.2"
+        "phpsoftbox/cs-fixer": "^1.2.2",
+        "phpsoftbox/encryptor": "^1.0",
+        "phpsoftbox/storage": "^1.0",
+        "phpunit/phpunit": "^13.3"
     },
     "autoload": {
         "psr-4": {
@@ -41,6 +39,5 @@
         "cs:fix": "vendor/bin/psb-cs-fixer fix",
         "cs:check": "vendor/bin/psb-cs-fixer check --diff"
     },
-    "minimum-stability": "dev",
     "prefer-stable": true
 }

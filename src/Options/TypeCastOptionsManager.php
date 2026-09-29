@@ -27,15 +27,17 @@ final class TypeCastOptionsManager
     public function __construct()
     {
         // Базовые дефолты (можно переопределять через registerDefaults()).
-        $this->defaults['datetime'] = new DatetimeCastOptions();
+        // Здесь задаются только значения, отличающиеся от дефолтов handler'ов: всё незаданное
+        // (null) handler берёт из собственных настроек, например класс DateTime из DefaultTypeCasterFactory.
+        // Форматы разбора с `!` обнуляют незаданные части, чтобы date/time не подмешивали текущее время/дату.
+        $this->defaults['date'] = new DatetimeCastOptions(formatTo: 'Y-m-d', formatFrom: '!Y-m-d');
 
-        $this->defaults['date'] = new DatetimeCastOptions(formatTo: 'Y-m-d', formatFrom: 'Y-m-d');
+        $this->defaults['time'] = new DatetimeCastOptions(formatTo: 'H:i:s', formatFrom: '!H:i:s');
 
-        $this->defaults['time'] = new DatetimeCastOptions(formatTo: 'H:i:s', formatFrom: 'H:i:s');
-
+        // Для date_point формат разбора не задан: DatePoint разбирает значение свободно, так читаются и `DATETIME`,
+        // и `TIMESTAMP` Postgres с дробной частью секунд и смещением.
         $this->defaults['date_point'] = new DatetimeCastOptions(
             formatTo: 'Y-m-d H:i:s',
-            formatFrom: 'Y-m-d H:i:s',
             dateTimeClass: DatePoint::class,
         );
 
@@ -50,18 +52,6 @@ final class TypeCastOptionsManager
             formatFrom: '!H:i:s',
             dateTimeClass: DatePoint::class,
         );
-
-        $this->defaults['json'] = new JsonCastOptions();
-
-        $this->defaults['bool'] = new BoolCastOptions();
-
-        $this->defaults['boolean'] = new BoolCastOptions();
-
-        $this->defaults['decimal'] = new DecimalCastOptions();
-
-        $this->defaults['pg_array'] = new PgArrayCastOptions();
-
-        $this->defaults['phone'] = new PhoneCastOptions();
 
         // enum/encrypted имеют обязательные параметры (enum_class/key), поэтому их обычно задают в #[Column].
         // Но дефолтные опции всё равно можно зарегистрировать через DI.
@@ -79,13 +69,12 @@ final class TypeCastOptionsManager
     {
         $base = $this->defaults[$type] ?? null;
 
-        $baseArray      = $base?->toArray() ?? [];
-        $overridesArray = $overrides?->toArray() ?? [];
+        // null означает «не задано»: такое поле не перекрывает ни дефолт типа, ни дефолт handler'а.
+        $notNull        = static fn (mixed $v): bool => $v !== null;
+        $baseArray      = array_filter($base?->toArray() ?? [], $notNull);
+        $overridesArray = array_filter($overrides?->toArray() ?? [], $notNull);
 
-        // overrides выигрывают
-        return array_filter(
-            [...$baseArray, ...$overridesArray],
-            static fn (mixed $v): bool => $v !== null,
-        );
+        // Заданные overrides выигрывают.
+        return [...$baseArray, ...$overridesArray];
     }
 }

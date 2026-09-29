@@ -18,6 +18,7 @@ use PhpSoftBox\DataCasting\Options\PgArrayCastOptions;
 use PhpSoftBox\DataCasting\Options\PhoneCastOptions;
 use PhpSoftBox\DataCasting\Options\StoragePathCastOptions;
 use PhpSoftBox\DataCasting\Options\TypeCastOptionsManager;
+use PhpSoftBox\DataCasting\Tests\Fixtures\OptionsCoverageStatus;
 use PhpSoftBox\Storage\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -52,9 +53,11 @@ final class OptionsCoverageTest extends TestCase
             strict: true,
         );
 
-        self::assertSame(false, $defaults->toArray()['strict'] ?? null);
-        self::assertContains('yes', $defaults->toArray()['true_values'] ?? []);
-        self::assertContains('off', $defaults->toArray()['false_values'] ?? []);
+        self::assertSame([
+            'true_values'  => null,
+            'false_values' => null,
+            'strict'       => null,
+        ], $defaults->toArray());
         self::assertSame([
             'true_values'  => [1, 'yes'],
             'false_values' => [0, 'no'],
@@ -74,7 +77,7 @@ final class OptionsCoverageTest extends TestCase
         self::assertSame([
             'format_to'     => null,
             'format_from'   => null,
-            'dateTimeClass' => DateTimeImmutable::class,
+            'dateTimeClass' => null,
         ], $defaults->toArray());
         self::assertSame([
             'format_to'     => 'Y-m-d',
@@ -96,15 +99,15 @@ final class OptionsCoverageTest extends TestCase
 
         self::assertSame([
             'scale'               => null,
-            'trim_trailing_zeros' => false,
+            'trim_trailing_zeros' => null,
         ], $decimalDefaults->toArray());
         self::assertSame([
             'scale'               => 4,
             'trim_trailing_zeros' => true,
         ], $decimalCustom->toArray());
         self::assertSame([
-            'scale'               => 2,
-            'trim_trailing_zeros' => false,
+            'scale'               => null,
+            'trim_trailing_zeros' => null,
         ], $moneyDefaults->toArray());
         self::assertSame([
             'scale'               => 3,
@@ -123,7 +126,7 @@ final class OptionsCoverageTest extends TestCase
 
         self::assertSame([
             'enum_class'      => OptionsCoverageStatus::class,
-            'null_on_invalid' => false,
+            'null_on_invalid' => null,
         ], $defaults->toArray());
         self::assertSame([
             'enum_class'      => OptionsCoverageStatus::class,
@@ -143,7 +146,7 @@ final class OptionsCoverageTest extends TestCase
         self::assertSame([
             'json_encode_flags'     => null,
             'json_decode_flags'     => null,
-            'invalid_json'          => 'empty',
+            'invalid_json'          => null,
             'target_class'          => null,
             'collection_item_class' => null,
             'map_value_class'       => null,
@@ -174,7 +177,7 @@ final class OptionsCoverageTest extends TestCase
 
         self::assertSame([
             'item_type'                   => null,
-            'empty_string_as_empty_array' => true,
+            'empty_string_as_empty_array' => null,
         ], $defaults->toArray());
         self::assertSame([
             'item_type'                   => 'uuid',
@@ -192,8 +195,8 @@ final class OptionsCoverageTest extends TestCase
         $custom   = new PhoneCastOptions(withCountryCodeTo: true, withCountryCodeFrom: true);
 
         self::assertSame([
-            'with_country_code_to'   => false,
-            'with_country_code_from' => false,
+            'with_country_code_to'   => null,
+            'with_country_code_from' => null,
         ], $defaults->toArray());
         self::assertSame([
             'with_country_code_to'   => true,
@@ -230,38 +233,27 @@ final class OptionsCoverageTest extends TestCase
     }
 
     /**
-     * Проверяет дефолты менеджера опций для встроенных типов.
+     * Проверяет дефолты менеджера опций для встроенных типов: заданы только форматы и класс DatePoint,
+     * остальные типы не получают значений, чтобы не перекрывать дефолты handler'ов.
+     *
+     * @see TypeCastOptionsManager::resolve()
      */
     #[Test]
     public function managerResolvesBuiltInDefaults(): void
     {
         $manager = new TypeCastOptionsManager();
 
-        $datetime  = $manager->resolve('datetime', null);
-        $date      = $manager->resolve('date', null);
-        $time      = $manager->resolve('time', null);
-        $datePoint = $manager->resolve('date_point', null);
-        $dayPoint  = $manager->resolve('day_point', null);
-        $timePoint = $manager->resolve('time_point', null);
-        $bool      = $manager->resolve('bool', null);
-        $boolean   = $manager->resolve('boolean', null);
-        $json      = $manager->resolve('json', null);
-        $decimal   = $manager->resolve('decimal', null);
-        $pgArray   = $manager->resolve('pg_array', null);
-        $phone     = $manager->resolve('phone', null);
-
-        self::assertSame(DateTimeImmutable::class, $datetime['dateTimeClass'] ?? null);
-        self::assertSame('Y-m-d', $date['format_to'] ?? null);
-        self::assertSame('H:i:s', $time['format_to'] ?? null);
-        self::assertSame(DatePoint::class, $datePoint['dateTimeClass'] ?? null);
-        self::assertSame('!Y-m-d', $dayPoint['format_from'] ?? null);
-        self::assertSame('!H:i:s', $timePoint['format_from'] ?? null);
-        self::assertSame('empty', $json['invalid_json'] ?? null);
-        self::assertSame(false, $bool['strict'] ?? null);
-        self::assertSame(false, $boolean['strict'] ?? null);
-        self::assertSame(false, $decimal['trim_trailing_zeros'] ?? null);
-        self::assertSame(true, $pgArray['empty_string_as_empty_array'] ?? null);
-        self::assertSame(false, $phone['with_country_code_to'] ?? null);
+        self::assertSame([], $manager->resolve('datetime', null));
+        self::assertSame(['format_to' => 'Y-m-d', 'format_from' => '!Y-m-d'], $manager->resolve('date', null));
+        self::assertSame(['format_to' => 'H:i:s', 'format_from' => '!H:i:s'], $manager->resolve('time', null));
+        self::assertSame(DatePoint::class, $manager->resolve('date_point', null)['dateTimeClass'] ?? null);
+        self::assertSame('!Y-m-d', $manager->resolve('day_point', null)['format_from'] ?? null);
+        self::assertSame('!H:i:s', $manager->resolve('time_point', null)['format_from'] ?? null);
+        self::assertSame([], $manager->resolve('json', null));
+        self::assertSame([], $manager->resolve('bool', null));
+        self::assertSame([], $manager->resolve('decimal', null));
+        self::assertSame([], $manager->resolve('pg_array', null));
+        self::assertSame([], $manager->resolve('phone', null));
     }
 
     /**
@@ -334,9 +326,4 @@ final class OptionsCoverageTest extends TestCase
             ],
         ]);
     }
-}
-
-enum OptionsCoverageStatus: string
-{
-    case Active = 'active';
 }

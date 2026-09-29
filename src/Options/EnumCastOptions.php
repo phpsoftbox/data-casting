@@ -6,14 +6,20 @@ namespace PhpSoftBox\DataCasting\Options;
 
 use BackedEnum;
 
+/**
+ * Опции enum-кастинга.
+ *
+ * Незаданные (null) поля не попадают в итоговые опции.
+ */
 final readonly class EnumCastOptions implements TypeCastingOptionsInterface
 {
     /**
      * @param class-string<BackedEnum> $enumClass
+     * @param bool|null $nullOnInvalid Возвращать null для неизвестного значения (по умолчанию false).
      */
     public function __construct(
         public string $enumClass,
-        public bool $nullOnInvalid = false,
+        public ?bool $nullOnInvalid = null,
     ) {
     }
 

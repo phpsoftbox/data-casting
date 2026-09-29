@@ -131,13 +131,17 @@ final class ReflectionJsonObjectMapper implements JsonObjectMapperInterface
             $path = $context->path . '.' . $name;
 
             if (!array_key_exists($name, $values)) {
+                // Отсутствующее поле: сначала используем значение по умолчанию из конструктора
+                // (новое поле VO не должно ломать чтение старых данных), затем null для nullable-параметра.
+                if ($parameter->isDefaultValueAvailable()) {
+                    continue;
+                }
+
                 if (!$parameter->allowsNull()) {
                     throw new JsonHydrationException($path . ' is required.');
                 }
 
-                if (!$parameter->isDefaultValueAvailable()) {
-                    $arguments[$name] = null;
-                }
+                $arguments[$name] = null;
 
                 continue;
             }
