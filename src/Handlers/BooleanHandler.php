@@ -9,6 +9,9 @@ use PhpSoftBox\DataCasting\Contracts\TypeHandlerInterface;
 
 use function in_array;
 use function is_bool;
+use function is_string;
+use function strtolower;
+use function trim;
 
 /**
  * Bool для ORM: понимает разные представления boolean из БД (0/1, t/f, yes/no).
@@ -22,14 +25,12 @@ final class BooleanHandler implements TypeHandlerInterface
 
     public function castTo(mixed $value, array $options = []): ?bool
     {
-        if ($value === null) {
-            return null;
-        }
-
-        return (bool) $value;
+        // В БД-направлении используем те же правила распознавания, что и при чтении:
+        // строка 'false'/'f'/'no'/'0' должна сохраняться как false, а не как (bool) 'false' === true.
+        return $this->castFrom($value, $options);
     }
 
-    public function castFrom(mixed $value, array $options = []): mixed
+    public function castFrom(mixed $value, array $options = []): ?bool
     {
         if ($value === null) {
             return null;
@@ -43,11 +44,13 @@ final class BooleanHandler implements TypeHandlerInterface
         $falseValues = $options['false_values'] ?? [false, 0, '0', 'false', 'f', 'no', 'n', 'off', ''];
         $strict      = (bool) ($options['strict'] ?? false);
 
-        if (in_array($value, $trueValues, true)) {
+        $candidate = is_string($value) ? strtolower(trim($value)) : $value;
+
+        if (in_array($value, $trueValues, true) || in_array($candidate, $trueValues, true)) {
             return true;
         }
 
-        if (in_array($value, $falseValues, true)) {
+        if (in_array($value, $falseValues, true) || in_array($candidate, $falseValues, true)) {
             return false;
         }
 

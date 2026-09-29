@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpSoftBox\DataCasting\Handlers;
 
+use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
@@ -11,6 +12,7 @@ use PhpSoftBox\Clock\DatePoint;
 use PhpSoftBox\DataCasting\Contracts\TypeHandlerInterface;
 use Throwable;
 
+use function is_a;
 use function is_string;
 
 final readonly class DateTimeHandler implements TypeHandlerInterface
@@ -44,11 +46,11 @@ final readonly class DateTimeHandler implements TypeHandlerInterface
             throw new InvalidArgumentException('Date/time value must implement DateTimeInterface.');
         }
 
-        $type = (string) ($options['type'] ?? 'datetime');
-
+        $type   = (string) ($options['type'] ?? 'datetime');
         $format = $options['format_to'] ?? match ($type) {
             'date', 'day_point'  => 'Y-m-d',
             'time', 'time_point' => 'H:i:s',
+            'date_point'         => 'Y-m-d H:i:s',
             default              => $this->format,
         };
 
@@ -72,36 +74,33 @@ final readonly class DateTimeHandler implements TypeHandlerInterface
         $type       = (string) ($options['type'] ?? 'datetime');
         $class      = $options['dateTimeClass'] ?? $this->dateTimeClass;
         $formatFrom = $options['format_from'] ?? null;
+        $formatFrom = is_string($formatFrom) && $formatFrom !== '' ? $formatFrom : null;
 
         if ($type === 'date_point' || $type === 'day_point' || $type === 'time_point') {
             $class = DatePoint::class;
         }
 
         if ($class === DatePoint::class) {
-            if (is_string($formatFrom) && $formatFrom !== '') {
-                return DatePoint::fromString($value, $formatFrom);
-            }
-
-            return DatePoint::fromString($value);
+            return DatePoint::fromString($value, $formatFrom ?? $this->defaultFormatFrom($type));
         }
 
-        // Если задан format_from, используем createFromFormat.
-        if (is_string($formatFrom) && $formatFrom !== '') {
-            // DateTimeImmutable::createFromFormat возвращает false при ошибке.
-            $dt = DateTimeImmutable::createFromFormat($formatFrom, $value);
-            if ($dt === false) {
+        // Если задан format_from, используем createFromFormat и не допускаем fallback.
+        if ($formatFrom !== null) {
+            $dt = $this->createFromFormat($class, $formatFrom, $value);
+            if ($dt === null) {
                 throw new InvalidArgumentException('Failed to parse date/time using format_from.');
             }
 
-            // Приводим к нужному классу, если требуется.
-            if ($class === DateTimeImmutable::class) {
-                return $dt;
-            }
+            return $dt;
+        }
 
-            try {
-                return new $class($dt->format(DateTimeInterface::ATOM));
-            } catch (Throwable $e) {
-                throw new InvalidArgumentException('Failed to convert date/time to configured dateTimeClass.', 0, $e);
+        // Для date/time без явного формата сначала пробуем строгий формат с `!`,
+        // чтобы не подмешивать текущее время (для date) или текущую дату (для time).
+        $defaultFormat = $this->defaultFormatFrom($type);
+        if ($defaultFormat !== null) {
+            $dt = $this->createFromFormat($class, $defaultFormat, $value);
+            if ($dt !== null) {
+                return $dt;
             }
         }
 
@@ -115,5 +114,38 @@ final readonly class DateTimeHandler implements TypeHandlerInterface
     public function cast(mixed $value): mixed
     {
         return $this->castFrom($value);
+    }
+
+    private function defaultFormatFrom(string $type): ?string
+    {
+        return match ($type) {
+            'date', 'day_point'  => '!Y-m-d',
+            'time', 'time_point' => '!H:i:s',
+            default              => null,
+        };
+    }
+
+    /**
+     * @param class-string<DateTimeInterface> $class
+     */
+    private function createFromFormat(string $class, string $format, string $value): ?DateTimeInterface
+    {
+        // DateTimeImmutable/DateTime и их наследники (например, Carbon) создают объект нужного класса сами.
+        if (is_a($class, DateTimeImmutable::class, true) || is_a($class, DateTime::class, true)) {
+            $dt = $class::createFromFormat($format, $value);
+
+            return $dt instanceof DateTimeInterface ? $dt : null;
+        }
+
+        $dt = DateTimeImmutable::createFromFormat($format, $value);
+        if ($dt === false) {
+            return null;
+        }
+
+        try {
+            return new $class($dt->format('Y-m-d\\TH:i:s.uP'));
+        } catch (Throwable $e) {
+            throw new InvalidArgumentException('Failed to convert date/time to configured dateTimeClass.', 0, $e);
+        }
     }
 }

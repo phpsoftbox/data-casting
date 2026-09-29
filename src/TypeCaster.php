@@ -12,6 +12,7 @@ use function array_key_exists;
 use function array_unshift;
 use function array_values;
 use function is_a;
+use function is_array;
 
 /**
  * Универсальный runtime type-caster.
@@ -31,6 +32,13 @@ final class TypeCaster implements TypeCasterInterface
      */
     private array $handlers;
 
+    /**
+     * Экземпляры handler'ов, переданных в castTo()/castFrom() как class-string.
+     *
+     * @var array<class-string<TypeHandlerInterface>, TypeHandlerInterface>
+     */
+    private array $handlerInstances = [];
+
     public function handlers(): array
     {
         return $this->handlers;
@@ -41,23 +49,17 @@ final class TypeCaster implements TypeCasterInterface
         array_unshift($this->handlers, $handler);
     }
 
-    public function castArray(array $config, array $data): array
+    public function castArray(array $config, array $data, array $options = []): array
     {
         $result = $data;
 
-        foreach ($config as $key => $typeOrHandler) {
+        foreach ($config as $key => $type) {
             if (!array_key_exists($key, $data)) {
                 continue;
             }
 
-            if (is_a($typeOrHandler, TypeHandlerInterface::class, true)) {
-                $handler = new $typeOrHandler();
-
-                $result[$key] = $handler->castFrom($data[$key]);
-                continue;
-            }
-
-            $result[$key] = $this->castFrom($typeOrHandler, $data[$key]);
+            $fieldOptions = $options[$key] ?? [];
+            $result[$key] = $this->castFrom($type, $data[$key], is_array($fieldOptions) ? $fieldOptions : []);
         }
 
         return $result;
@@ -67,20 +69,42 @@ final class TypeCaster implements TypeCasterInterface
     {
         // Если передали class-string handler'а — применяем его напрямую.
         if (is_a($type, TypeHandlerInterface::class, true)) {
-            return new $type()->castTo($value, $options);
+            return $this->handlerInstance($type)->castTo($value, $options);
         }
 
-        return $this->resolveHandler($type)->castTo($value, $options);
+        return $this->resolveHandler($type)->castTo($value, $this->withType($type, $options));
     }
 
     public function castFrom(string $type, mixed $value, array $options = []): mixed
     {
         // Если передали class-string handler'а — применяем его напрямую.
         if (is_a($type, TypeHandlerInterface::class, true)) {
-            return new $type()->castFrom($value, $options);
+            return $this->handlerInstance($type)->castFrom($value, $options);
         }
 
-        return $this->resolveHandler($type)->castFrom($value, $options);
+        return $this->resolveHandler($type)->castFrom($value, $this->withType($type, $options));
+    }
+
+    /**
+     * Handler, обслуживающий несколько типов (например, datetime/date/time), должен знать,
+     * для какого типа его вызвали, даже если опция `type` не передана явно.
+     *
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    private function withType(string $type, array $options): array
+    {
+        $options['type'] ??= $type;
+
+        return $options;
+    }
+
+    /**
+     * @param class-string<TypeHandlerInterface> $class
+     */
+    private function handlerInstance(string $class): TypeHandlerInterface
+    {
+        return $this->handlerInstances[$class] ??= new $class();
     }
 
     private function resolveHandler(string $type): TypeHandlerInterface

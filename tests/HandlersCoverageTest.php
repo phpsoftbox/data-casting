@@ -22,6 +22,7 @@ use PhpSoftBox\DataCasting\Handlers\PhoneHandler;
 use PhpSoftBox\DataCasting\Handlers\StoragePathHandler;
 use PhpSoftBox\DataCasting\Handlers\StringHandler;
 use PhpSoftBox\DataCasting\Handlers\UuidHandler;
+use PhpSoftBox\DataCasting\Tests\Fixtures\HandlerTestStatus;
 use PhpSoftBox\Encryptor\Contracts\EncryptorInterface;
 use PhpSoftBox\Storage\Storage;
 use PhpSoftBox\Storage\StoragePath;
@@ -394,10 +395,4 @@ final class HandlersCoverageTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $handler->castFrom('avatars/user-1.png');
     }
-}
-
-enum HandlerTestStatus: string
-{
-    case Active   = 'active';
-    case Inactive = 'inactive';
 }

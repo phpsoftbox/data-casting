@@ -38,13 +38,15 @@ interface TypeCasterInterface
      * Делает cast массива по конфигурации через castFrom().
      *
      * Пример:
-     *  $config = ['created' => 'datetime', 'id' => 'uuid', 'custom' => CustomHandler::class]
-     *  $data = ['created' => '2022-01-01T00:00:00+00:00', 'id' => '...', 'custom' => '...']
+     *  $config = ['created' => 'date', 'id' => 'uuid', 'custom' => CustomHandler::class]
+     *  $data = ['created' => '22.04.2026', 'id' => '...', 'custom' => '...']
+     *  $options = ['created' => ['format_from' => '!d.m.Y']]
      *
      * @param array<string, string|class-string<TypeHandlerInterface>> $config
      * @param array<string, mixed> $data
+     * @param array<string, array<string, mixed>> $options Опции handler'а для каждого поля.
      *
      * @return array<string, mixed>
      */
-    public function castArray(array $config, array $data): array;
+    public function castArray(array $config, array $data, array $options = []): array;
 }

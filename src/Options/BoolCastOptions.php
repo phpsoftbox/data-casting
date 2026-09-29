@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace PhpSoftBox\DataCasting\Options;
 
+/**
+ * Опции bool-кастинга.
+ *
+ * Незаданные (null) поля не попадают в итоговые опции: вместо них используются дефолты,
+ * зарегистрированные в TypeCastOptionsManager, а затем дефолты BooleanHandler.
+ */
 final readonly class BoolCastOptions implements TypeCastingOptionsInterface
 {
     /**
-     * @param list<int|string|bool> $trueValues
-     * @param list<int|string|bool> $falseValues
+     * @param list<int|string|bool>|null $trueValues Значения, считающиеся true
+     *                                               (по умолчанию: true, 1, '1', 'true', 't', 'yes', 'y', 'on').
+     * @param list<int|string|bool>|null $falseValues Значения, считающиеся false
+     *                                                (по умолчанию: false, 0, '0', 'false', 'f', 'no', 'n', 'off', '').
+     * @param bool|null $strict Бросать исключение для нераспознанного значения (по умолчанию false).
      */
     public function __construct(
-        public array $trueValues = [true, 1, '1', 'true', 't', 'yes', 'y', 'on'],
-        public array $falseValues = [false, 0, '0', 'false', 'f', 'no', 'n', 'off', ''],
-        public bool $strict = false,
+        public ?array $trueValues = null,
+        public ?array $falseValues = null,
+        public ?bool $strict = null,
     ) {
     }
 

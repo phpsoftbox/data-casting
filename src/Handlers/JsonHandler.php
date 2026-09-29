@@ -9,6 +9,7 @@ use JsonException;
 use PhpSoftBox\DataCasting\Contracts\JsonObjectMapperInterface;
 use PhpSoftBox\DataCasting\Contracts\TypeHandlerInterface;
 use PhpSoftBox\DataCasting\JsonHydrationContext;
+use PhpSoftBox\DataCasting\Options\JsonInvalidPolicy;
 use PhpSoftBox\DataCasting\ReflectionJsonObjectMapper;
 use stdClass;
 
@@ -113,6 +114,11 @@ final class JsonHandler implements TypeHandlerInterface
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return $this->invalidJson($options);
             }
+
+            // JSON-литерал null — корректное представление отсутствующего значения.
+            if ($decoded === null) {
+                return null;
+            }
         }
 
         if (!is_array($decoded) && !$decoded instanceof stdClass) {
@@ -152,21 +158,28 @@ final class JsonHandler implements TypeHandlerInterface
     }
 
     /**
+     * Обрабатывает невалидный JSON или JSON-скаляр вместо объекта/массива.
+     *
+     * По умолчанию бросает исключение: молчаливая подмена на `[]`/null приводит к тому,
+     * что при следующем сохранении сущности исходное значение колонки будет перезаписано.
+     *
      * @param array<string, mixed> $options
      */
     private function invalidJson(array $options): mixed
     {
-        $policy = (string) ($options['invalid_json'] ?? 'empty');
+        $policy = $options['invalid_json'] ?? JsonInvalidPolicy::Throw;
+        $policy = $policy instanceof JsonInvalidPolicy ? $policy : JsonInvalidPolicy::tryFrom((string) $policy);
         $mapped = $this->stringOption($options, 'target_class') !== null
             || $this->stringOption($options, 'collection_item_class') !== null
             || $this->stringOption($options, 'map_value_class') !== null;
 
         return match ($policy) {
-            'null'  => null,
-            'throw' => throw new InvalidArgumentException('Invalid JSON string.'),
-            default => $mapped
+            JsonInvalidPolicy::Null  => null,
+            JsonInvalidPolicy::Throw => throw new InvalidArgumentException('Invalid JSON string.'),
+            JsonInvalidPolicy::Empty => $mapped
                 ? throw new InvalidArgumentException('Invalid JSON string for mapped JSON value.')
                 : [],
+            null => throw new InvalidArgumentException('Unknown invalid_json policy.'),
         };
     }
 
