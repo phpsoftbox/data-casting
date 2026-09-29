@@ -65,7 +65,9 @@ Handler, переданный как class-string (`$caster->castFrom(MyHandler:
   (`DateTimeImmutable` или класс из `DefaultTypeCasterFactory`) либо через `format_from`.
 - `date`: запись `Y-m-d`, чтение `!Y-m-d` — время всегда `00:00:00`.
 - `time`: запись `H:i:s`, чтение `!H:i:s` — дата всегда `1970-01-01`.
-- `date_point`, `day_point`, `time_point`: то же для `PhpSoftBox\Clock\DatePoint`.
+- `date_point`, `day_point`, `time_point`: то же для `PhpSoftBox\Clock\DatePoint`. Для `date_point` формат чтения по
+  умолчанию не задан — значение разбирается свободно, поэтому читаются и `DATETIME`, и `TIMESTAMP` Postgres с дробной
+  частью секунд и смещением. Явный `format_from` строгий: несовпадение — исключение.
 
 Форматы с `!` обнуляют незаданные части, поэтому значения date/time не зависят от текущего момента
 и корректно сравниваются при dirty-check. Если значение не подходит под формат по умолчанию,

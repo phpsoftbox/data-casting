@@ -34,9 +34,10 @@ final class TypeCastOptionsManager
 
         $this->defaults['time'] = new DatetimeCastOptions(formatTo: 'H:i:s', formatFrom: '!H:i:s');
 
+        // Для date_point формат разбора не задан: DatePoint разбирает значение свободно, так читаются и `DATETIME`,
+        // и `TIMESTAMP` Postgres с дробной частью секунд и смещением.
         $this->defaults['date_point'] = new DatetimeCastOptions(
             formatTo: 'Y-m-d H:i:s',
-            formatFrom: 'Y-m-d H:i:s',
             dateTimeClass: DatePoint::class,
         );
 
