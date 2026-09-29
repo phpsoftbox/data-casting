@@ -345,7 +345,7 @@ final class HandlersCoverageTest extends TestCase
     #[Test]
     public function encryptedHandlerRejectsMissingKey(): void
     {
-        $handler = new EncryptedHandler($this->createMock(EncryptorInterface::class));
+        $handler = new EncryptedHandler($this->createStub(EncryptorInterface::class));
 
         $this->expectException(InvalidArgumentException::class);
         $handler->castTo('secret');
