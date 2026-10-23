@@ -166,17 +166,17 @@ final class DecimalHandler implements TypeHandlerInterface
     private function shortestFloatString(float $value): string
     {
         for ($precision = 1; $precision < 17; $precision++) {
-            $candidate = sprintf('%.' . $precision . 'G', $value);
+            $candidate = sprintf('%.' . $precision . 'H', $value);
             if ((float) $candidate === $value) {
                 return $this->trimMantissaZeros($candidate);
             }
         }
 
-        return $this->trimMantissaZeros(sprintf('%.17G', $value));
+        return $this->trimMantissaZeros(sprintf('%.17H', $value));
     }
 
     /**
-     * Убирает незначащие нули мантиссы (`1.0E-20` → `1E-20`), которые sprintf('%G') может оставить.
+     * Убирает незначащие нули мантиссы (`1.0E-20` → `1E-20`), которые sprintf('%H') может оставить.
      */
     private function trimMantissaZeros(string $value): string
     {
