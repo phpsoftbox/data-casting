@@ -11,6 +11,11 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function is_string;
+use function setlocale;
+
+use const LC_NUMERIC;
+
 #[CoversClass(DecimalHandler::class)]
 #[CoversMethod(DecimalHandler::class, 'castTo')]
 #[CoversMethod(DecimalHandler::class, 'castFrom')]
@@ -97,5 +102,27 @@ final class DecimalHandlerNormalizationTest extends TestCase
 
         self::assertSame('0.5', $handler->castFrom('+.5'));
         self::assertSame('-12.30', $handler->castFrom('-0012.30'));
+    }
+
+    /**
+     * Проверим, что float нормализуется с точкой даже при локали с десятичной запятой.
+     *
+     * @see DecimalHandler::castTo()
+     */
+    #[Test]
+    public function castToIsIndependentOfNumericLocale(): void
+    {
+        $previousLocale = setlocale(LC_NUMERIC, '0');
+        if (setlocale(LC_NUMERIC, 'ru_RU.UTF-8', 'ru_RU.utf8', 'de_DE.UTF-8', 'fr_FR.UTF-8') === false) {
+            self::markTestSkipped('Локаль с десятичной запятой недоступна.');
+        }
+
+        try {
+            self::assertSame('12.34', new DecimalHandler()->castTo(12.34));
+        } finally {
+            if (is_string($previousLocale)) {
+                setlocale(LC_NUMERIC, $previousLocale);
+            }
+        }
     }
 }

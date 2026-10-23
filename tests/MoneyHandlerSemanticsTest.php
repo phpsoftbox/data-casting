@@ -11,6 +11,11 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function is_string;
+use function setlocale;
+
+use const LC_NUMERIC;
+
 #[CoversClass(MoneyHandler::class)]
 #[CoversMethod(MoneyHandler::class, 'castTo')]
 #[CoversMethod(MoneyHandler::class, 'castFrom')]
@@ -41,6 +46,28 @@ final class MoneyHandlerSemanticsTest extends TestCase
         $handler = new MoneyHandler();
 
         self::assertSame(1234, $handler->castTo(12.34));
+    }
+
+    /**
+     * Проверим, что денежный float переводится в минорные единицы при локали с десятичной запятой.
+     *
+     * @see MoneyHandler::castTo()
+     */
+    #[Test]
+    public function castToIsIndependentOfNumericLocale(): void
+    {
+        $previousLocale = setlocale(LC_NUMERIC, '0');
+        if (setlocale(LC_NUMERIC, 'ru_RU.UTF-8', 'ru_RU.utf8', 'de_DE.UTF-8', 'fr_FR.UTF-8') === false) {
+            self::markTestSkipped('Локаль с десятичной запятой недоступна.');
+        }
+
+        try {
+            self::assertSame(1234, new MoneyHandler()->castTo(12.34));
+        } finally {
+            if (is_string($previousLocale)) {
+                setlocale(LC_NUMERIC, $previousLocale);
+            }
+        }
     }
 
     /**
