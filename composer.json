@@ -15,7 +15,7 @@
     "require": {
         "php": "^8.5",
         "phpsoftbox/clock": "^1.0",
-        "phpsoftbox/filter": "^1.0",
+        "phpsoftbox/filter": "^1.1",
         "ramsey/uuid": "^4.7"
     },
     "require-dev": {

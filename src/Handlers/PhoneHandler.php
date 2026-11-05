@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpSoftBox\DataCasting\Handlers;
 
+use PhpSoftBox\Filter\Phone\PhoneNumber;
 use PhpSoftBox\Filter\PhoneFilter;
 
 final class PhoneHandler extends AbstractTypeHandler
@@ -19,7 +20,11 @@ final class PhoneHandler extends AbstractTypeHandler
             return null;
         }
 
-        $raw             = (string) $value;
+        $raw = (string) $value;
+        if (self::isInternational($options)) {
+            return PhoneNumber::parse($raw, mobileOnly: false)?->e164() ?? $raw;
+        }
+
         $withCountryCode = (bool) ($options['with_country_code_to'] ?? $options['withCountryCodeTo'] ?? false);
         $normalized      = new PhoneFilter(
             prepareForDb: true,
@@ -36,7 +41,13 @@ final class PhoneHandler extends AbstractTypeHandler
             return null;
         }
 
-        $raw             = (string) $value;
+        $raw = (string) $value;
+        if (self::isInternational($options)) {
+            $withCountryCode = (bool) ($options['with_country_code_from'] ?? $options['withCountryCodeFrom'] ?? true);
+
+            return PhoneNumber::parse($raw, mobileOnly: false)?->format($withCountryCode) ?? $raw;
+        }
+
         $withCountryCode = (bool) ($options['with_country_code_from'] ?? $options['withCountryCodeFrom'] ?? false);
         $normalized      = new PhoneFilter(
             prepareForDb: false,
@@ -45,5 +56,13 @@ final class PhoneHandler extends AbstractTypeHandler
         )($raw);
 
         return $normalized ?? $raw;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function isInternational(array $options): bool
+    {
+        return (bool) ($options['international'] ?? false);
     }
 }
