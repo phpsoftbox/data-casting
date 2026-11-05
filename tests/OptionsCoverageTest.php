@@ -192,15 +192,17 @@ final class OptionsCoverageTest extends TestCase
     public function phoneOptionsExposeDefaultsAndCustomValues(): void
     {
         $defaults = new PhoneCastOptions();
-        $custom   = new PhoneCastOptions(withCountryCodeTo: true, withCountryCodeFrom: true);
+        $custom   = new PhoneCastOptions(withCountryCodeTo: true, withCountryCodeFrom: true, international: true);
 
         self::assertSame([
             'with_country_code_to'   => null,
             'with_country_code_from' => null,
+            'international'          => null,
         ], $defaults->toArray());
         self::assertSame([
             'with_country_code_to'   => true,
             'with_country_code_from' => true,
+            'international'          => true,
         ], $custom->toArray());
     }
 

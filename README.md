@@ -7,6 +7,8 @@
 Компонент предоставляет:
 - `TypeCaster` и контракты handler-ов;
 - набор базовых handler-ов (`int`, `float`, `string`, `json`, `datetime`, `uuid`, `enum`, `money`, `pg_array`, `phone`, `bool`);
+- `phone` с `PhoneCastOptions(international: true)` хранит номер любой поддержанной страны в E.164
+  (`+79991234567`, `+8613812345678`) и читает его по маске страны номера (`+86 138 1234 5678`);
 - рекурсивный mapping JSON в типизированные объекты, списки и ассоциативные карты объектов;
 - `JsonSerializable`, custom hydration и factory/resolver API для полиморфных JSON-значений;
 - типизированные options и `TypeCastOptionsManager`.

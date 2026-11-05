@@ -279,7 +279,32 @@ final class HandlersCoverageTest extends TestCase
         $php = $handler->castFrom('9991234567');
 
         self::assertSame('9991234567', $db);
-        self::assertSame('(999) 123-4567', $php);
+        self::assertSame('(999) 123-45-67', $php);
+    }
+
+    /**
+     * Проверяет международный режим phone: хранение в E.164 для любой поддержанной страны, чтение — по маске страны
+     * номера; российский номер без кода (данные до перехода на E.164) тоже читается.
+     *
+     * @see PhoneHandler::castTo()
+     * @see PhoneHandler::castFrom()
+     */
+    #[Test]
+    public function phoneHandlerCastsInternationalNumbers(): void
+    {
+        $handler = new PhoneHandler();
+        $options = ['international' => true];
+
+        self::assertSame(
+            ['+79991234567', '+8613812345678', '+86 138 1234 5678', '+7 (999) 123-45-67', 'не телефон'],
+            [
+                $handler->castTo('8 (999) 123-45-67', $options),
+                $handler->castTo('+86 138 1234 5678', $options),
+                $handler->castFrom('+8613812345678', $options),
+                $handler->castFrom('9991234567', $options),
+                $handler->castTo('не телефон', $options),
+            ],
+        );
     }
 
     /**
